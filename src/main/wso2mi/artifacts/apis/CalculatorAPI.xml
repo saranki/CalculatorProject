@@ -1,0 +1,73 @@
+<api xmlns="http://ws.apache.org/ns/synapse" name="CalculatorAPI" context="/calculator">
+   <resource methods="POST" uri-template="/add">
+      <inSequence>
+         <!-- Log the incoming SOAP request -->
+         <log level="full">
+            <property name="Incoming SOAP Request" value="{$body}" />
+         </log>
+
+         <!-- Convert incoming SOAP request to JSON -->
+         <payloadFactory media-type="json">
+            <format>
+               {
+                  "operation": "Add",
+                  "param1": "$1",
+                  "param2": "$2"
+               }
+            </format>
+            <args>
+               <!-- <arg expression="get-property('axis2', 'SOAPAction')" /> -->
+               <!-- Extract param1 and param2 from the SOAP request -->
+               <!-- <arg expression="//*[local-name()='Body']/*[local-name()='add']/*[local-name()='param1']" />
+               <arg expression="//*[local-name()='Body']/*[local-name()='add']/*[local-name()='param2']" /> -->
+            <arg expression="//*[local-name()='Add']/*[local-name()='param1']" />
+            <arg expression="//*[local-name()='Add']/*[local-name()='param2']" />
+            </args>
+         </payloadFactory>
+
+         <!-- Log the converted JSON request -->
+         <log level="full">
+            <property name="Converted JSON Request" value="{$body}" />
+         </log>
+
+         <!-- Send request to REST Backend -->
+         <send>
+            <endpoint>
+               <address uri="https://run.mocky.io/v3/cd7f34f2-26a7-4034-862a-38e41a5c4d3b" />
+            </endpoint>
+         </send>
+      </inSequence>
+
+      <outSequence>
+         <!-- Log the JSON response from the backend -->
+         <log level="full">
+            <property name="Backend JSON Response" value="{$body}" />
+         </log>
+
+        <property name="name" value="123">
+         <header name="demo" expression="get-property('name')">
+         <!-- Convert response from backend (JSON) to SOAP -->
+         <payloadFactory media-type="xml">
+            <format>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Header/>
+                  <soap:Body>
+                    <AddResponse xmlns="http://tempuri.org/">
+                        <response>$1</response>
+                    </AddResponse>
+                  </soap:Body>
+               </soap:Envelope>
+            </format>
+            <args>
+                <arg expression="$.response" evaluator="json"/>
+            </args>
+         </payloadFactory>
+
+         <!-- Log the SOAP response before sending it back -->
+         <log level="full">
+            <property name="SOAP Response" value="{$body}" />
+         </log>
+         <send/>
+      </outSequence>
+   </resource>
+</api>
